@@ -4,6 +4,10 @@ const AWS_SECRET_ACCESS_KEY = "AKIA_FAKE_SECRET_FOR_TESTING";
 // Unused variable
 let unused = 42;
 
+// Vulnerable eval usage (for SonarQube to fail)
+const input = "2 + 2";
+const result = eval(input); // ⚠️ Code injection risk
+
 function nested() {
   if (true) {
     if (true) {
@@ -17,6 +21,7 @@ function nested() {
 function main() {
   nested();
   console.log("Running app");
+  console.log(result);
 }
 
 main();

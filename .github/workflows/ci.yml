@@ -15,6 +15,8 @@ jobs:
       - name: Run Gitleaks
         uses: gitleaks/gitleaks-action@v2
         with:
+          scan-dir: .
+          scan-type: repo
           report-format: sarif
           report-path: gitleaks-report.sarif
 
@@ -47,3 +49,18 @@ jobs:
         run: |
           npm install -g sonarqube-scanner
           sonar-scanner             -Dsonar.projectKey=bad-node-app             -Dsonar.sources=src             -Dsonar.host.url=${{ secrets.SONAR_HOST_URL }}             -Dsonar.login=${{ secrets.SONAR_TOKEN }}
+
+      - name: Wait for SonarQube Quality Gate
+        id: quality-gate
+        uses: sonarsource/sonarqube-quality-gate-action@v1.1.0
+        with:
+          sonar-token: ${{ secrets.SONAR_TOKEN }}
+          server-url: ${{ secrets.SONAR_HOST_URL }}
+          project-key: bad-node-app
+
+      - name: Fail if Quality Gate failed
+        run: |
+          if [ "${{ steps.quality-gate.outputs.quality-gate-status }}" != "PASSED" ]; then
+            echo "❌ Quality Gate failed"
+            exit 1
+          fi
