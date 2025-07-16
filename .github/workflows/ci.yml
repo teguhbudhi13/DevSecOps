@@ -23,14 +23,21 @@ jobs:
 
       - name: Run TruffleHog (filesystem scan)
         run: |
-          trufflehog filesystem --no-redact --json . > trufflehog-results.json || true
+          trufflehog filesystem --json . > trufflehog-results.json || true
 
-      - name: Print TruffleHog Raw Output
+      - name: Print Only File/Line with Secrets
         run: |
-          echo "--- BEGIN trufflehog-results.json ---"
-          cat trufflehog-results.json
-          echo "--- END trufflehog-results.json ---"
+          cat trufflehog-results.json | while read -r line; do
+            file=$(echo "$line" | jq -r '.SourceMetadata.Data.Filesystem.file // empty')
+            line_num=$(echo "$line" | jq -r '.SourceMetadata.Data.Filesystem.line // empty')
+            if [ -n "$file" ] && [ -n "$line_num" ]; then
+              echo "File: $file"
+              echo "Line: $line_num"
+              echo "---"
+            fi
+          done
 
+          
   sonarqube:
     name: SonarQube Scan
     runs-on: ubuntu-latest
