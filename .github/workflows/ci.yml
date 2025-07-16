@@ -29,7 +29,7 @@ jobs:
         run: |
           if grep -q '"sourceMetadata"' trufflehog-results.json; then
             echo "🔐 TruffleHog findings:"
-            jq -c '.[]' trufflehog-results.json | while read -r result; do
+            jq -c '.results[]' trufflehog-results.json | while read -r result; do
               reason=$(echo "$result" | jq -r '.reason')
               file=$(echo "$result" | jq -r '.sourceMetadata.data.source_id')
               line=$(echo "$result" | jq -r '.sourceMetadata.data.line')
@@ -43,6 +43,7 @@ jobs:
           else
             echo "✅ No secrets detected by TruffleHog"
           fi
+
 
       - name: Fail if Secrets Found
         run: |
