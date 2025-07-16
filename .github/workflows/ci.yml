@@ -31,28 +31,34 @@ jobs:
         run: |
           if grep -q '"ruleId"' gitleaks-report.sarif; then
             echo "🔐 Gitleaks findings:"
-            cat gitleaks-report.sarif | jq -r '
+            jq -r '
               .runs[].results[] |
               {
                 ruleId: .ruleId,
                 message: .message.text,
                 file: .locations[0].physicalLocation.artifactLocation.uri,
                 line: .locations[0].physicalLocation.region.startLine
-              }' | while read -r line; do
-                if [[ $line == \"ruleId* ]]; then rule=${line#*: }; fi
-                if [[ $line == \"message* ]]; then msg=${line#*: }; fi
-                if [[ $line == \"file* ]]; then file=${line#*: }; file=${file//\"/}; fi
-                if [[ $line == \"line* ]]; then
-                  lineno=${line#*: }
-                  content=$(sed -n "${lineno}p" "$file" 2>/dev/null | sed 's/^/    /')
-                  echo "🔸 Rule: $rule"
-                  echo "🔹 Message: $msg"
-                  echo "📄 File: $file"
-                  echo "📌 Line: $lineno"
-                  echo "💥 Content: $content"
-                  echo "---"
-                fi
-              done
+              }
+            ' gitleaks-report.sarif |
+            jq -c '.' |
+            while read -r finding; do
+              rule=$(echo "$finding" | jq -r '.ruleId')
+              msg=$(echo "$finding" | jq -r '.message')
+              file=$(echo "$finding" | jq -r '.file')
+              line=$(echo "$finding" | jq -r '.line')
+              if [[ -f "$file" ]]; then
+                code=$(sed -n "${line}p" "$file" 2>/dev/null)
+              else
+                code="(file not found)"
+              fi
+
+              echo "🔸 Rule: $rule"
+              echo "🔹 Message: $msg"
+              echo "📄 File: $file"
+              echo "📌 Line: $line"
+              echo "💥 Content: $code"
+              echo "---"
+            done
           else
             echo "✅ No secrets detected by Gitleaks"
           fi
