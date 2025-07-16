@@ -33,23 +33,28 @@ jobs:
             echo "🔐 Gitleaks findings:"
             jq -r '
               .runs[].results[] |
-              "🔸 Rule: \(.ruleId)\n🔹 Message: \(.message.text)\n📄 File: \(.locations[0].physicalLocation.artifactLocation.uri)\n📌 Line: \(.locations[0].physicalLocation.region.startLine // "N/A")"
-            ' gitleaks-report.sarif | while read -r line; do
-              echo "$line"
-              if [[ "$line" == 📄\ File:* ]]; then
-                filepath=$(echo "$line" | cut -d':' -f2- | xargs)
+              {
+                rule: .ruleId,
+                message: .message.text,
+                file: .locations[0].physicalLocation.artifactLocation.uri,
+                line: .locations[0].physicalLocation.region.startLine
+              } | @tsv
+            ' gitleaks-report.sarif | while IFS=$'\t' read -r rule message file line; do
+              echo "🔸 Rule: $rule"
+              echo "🔹 Message: $message"
+              echo "📄 File: $file"
+              echo "📌 Line: $line"
+              if [ -f "$file" ]; then
+                content=$(sed -n "${line}p" "$file" | sed 's/^/📄 Content: /')
+                echo "$content"
+              else
+                echo "⚠️ File not found in workspace: $file"
               fi
-              if [[ "$line" == 📌\ Line:* ]]; then
-                lineno=$(echo "$line" | cut -d':' -f2- | xargs)
-                echo "📄 Content: $(sed -n "${lineno}p" "$filepath" || echo "(Could not read file)")"
-                echo "---"
-              fi
+              echo "---"
             done
           else
             echo "✅ No secrets detected by Gitleaks"
           fi
-
-
 
       - name: Fail if Secrets Found
         run: |
