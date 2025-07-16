@@ -16,9 +16,15 @@ jobs:
 
       - name: Install TruffleHog v3
         run: |
-          wget https://github.com/trufflesecurity/trufflehog/releases/latest/download/trufflehog-linux-amd64
-          chmod +x trufflehog-linux-amd64
-          sudo mv trufflehog-linux-amd64 /usr/local/bin/trufflehog
+          set -e
+          # Get latest release tag using GitHub API
+          LATEST_TAG=$(curl -s https://api.github.com/repos/trufflesecurity/trufflehog/releases/latest | jq -r .tag_name)
+
+          # Download and install the binary
+          curl -sSL "https://github.com/trufflesecurity/trufflehog/releases/download/${LATEST_TAG}/trufflehog-linux-amd64" -o trufflehog
+          chmod +x trufflehog
+          sudo mv trufflehog /usr/local/bin/trufflehog
+
 
       - name: Run TruffleHog (filesystem scan)
         run: |
