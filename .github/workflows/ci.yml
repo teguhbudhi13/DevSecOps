@@ -25,18 +25,27 @@ jobs:
             --source . \
             --report-format sarif \
             --report-path gitleaks-report.sarif \
-            --exit-code 1
+            --exit-code 0
 
-      - name: Show Report
-        run: cat gitleaks-report.sarif || echo "No report"
+      - name: Show Gitleaks Findings (if any)
+        run: |
+          if grep -q '"ruleId"' gitleaks-report.sarif; then
+            echo "🔐 Gitleaks findings:"
+            cat gitleaks-report.sarif | jq '.runs[].results[] | {
+              ruleId,
+              message: .message.text,
+              file: .locations[0].physicalLocation.artifactLocation.uri,
+              line: .locations[0].physicalLocation.region.startLine
+            }'
+          else
+            echo "✅ No secrets detected by Gitleaks"
+          fi
 
       - name: Fail if Secrets Found
         run: |
           if grep -q '"ruleId"' gitleaks-report.sarif; then
             echo "❌ Gitleaks found hardcoded secrets"
             exit 1
-          else
-            echo "✅ No secrets detected by Gitleaks"
           fi
 
   sonarqube:
