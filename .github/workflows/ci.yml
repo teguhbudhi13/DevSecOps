@@ -27,13 +27,13 @@ jobs:
 
       - name: Show TruffleHog Findings (if any)
         run: |
-          if grep -q '"sourceMetadata"' trufflehog-results.json; then
+          if grep -q '"reason"' trufflehog-results.json; then
             echo "🔐 TruffleHog findings:"
-            jq -c '.results[]' trufflehog-results.json | while read -r result; do
+            jq -c '.results[]?' trufflehog-results.json | while read -r result; do
               reason=$(echo "$result" | jq -r '.reason')
-              file=$(echo "$result" | jq -r '.sourceMetadata.data.source_id')
-              line=$(echo "$result" | jq -r '.sourceMetadata.data.line')
-              content=$(echo "$result" | jq -r '.sourceMetadata.data.line_content')
+              file=$(echo "$result" | jq -r '.sourceMetadata.data.source_id // "N/A"')
+              line=$(echo "$result" | jq -r '.sourceMetadata.data.line // "N/A"')
+              content=$(echo "$result" | jq -r '.sourceMetadata.data.line_content // .raw.context // "N/A"')
               echo "🔸 Reason: $reason"
               echo "📄 File: $file"
               echo "📌 Line: $line"
@@ -43,8 +43,7 @@ jobs:
           else
             echo "✅ No secrets detected by TruffleHog"
           fi
-
-
+          
       - name: Fail if Secrets Found
         run: |
           if grep -q '"sourceMetadata"' trufflehog-results.json; then
