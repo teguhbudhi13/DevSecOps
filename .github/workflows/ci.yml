@@ -33,35 +33,22 @@ jobs:
             echo "🔐 Gitleaks findings:"
             jq -r '
               .runs[].results[] |
-              {
-                ruleId: .ruleId,
-                message: .message.text,
-                file: .locations[0].physicalLocation.artifactLocation.uri,
-                line: .locations[0].physicalLocation.region.startLine
-              }
-            ' gitleaks-report.sarif |
-            jq -c '.' |
-            while read -r finding; do
-              rule=$(echo "$finding" | jq -r '.ruleId')
-              msg=$(echo "$finding" | jq -r '.message')
-              file=$(echo "$finding" | jq -r '.file')
-              line=$(echo "$finding" | jq -r '.line')
-              if [[ -f "$file" ]]; then
-                code=$(sed -n "${line}p" "$file" 2>/dev/null)
-              else
-                code="(file not found)"
+              "🔸 Rule: \(.ruleId)\n🔹 Message: \(.message.text)\n📄 File: \(.locations[0].physicalLocation.artifactLocation.uri)\n📌 Line: \(.locations[0].physicalLocation.region.startLine // "N/A")"
+            ' gitleaks-report.sarif | while read -r line; do
+              echo "$line"
+              if [[ "$line" == 📄\ File:* ]]; then
+                filepath=$(echo "$line" | cut -d':' -f2- | xargs)
               fi
-
-              echo "🔸 Rule: $rule"
-              echo "🔹 Message: $msg"
-              echo "📄 File: $file"
-              echo "📌 Line: $line"
-              echo "💥 Content: $code"
-              echo "---"
+              if [[ "$line" == 📌\ Line:* ]]; then
+                lineno=$(echo "$line" | cut -d':' -f2- | xargs)
+                echo "📄 Content: $(sed -n "${lineno}p" "$filepath" || echo "(Could not read file)")"
+                echo "---"
+              fi
             done
           else
             echo "✅ No secrets detected by Gitleaks"
           fi
+
 
 
       - name: Fail if Secrets Found
