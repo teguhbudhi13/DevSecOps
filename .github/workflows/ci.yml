@@ -23,7 +23,7 @@ jobs:
 
       - name: Run TruffleHog (filesystem scan)
         run: |
-          trufflehog filesystem --json . > trufflehog-results.json || true
+          trufflehog filesystem --no-redact --json . > trufflehog-results.json || true
 
       - name: Print TruffleHog Raw Output
         run: |
