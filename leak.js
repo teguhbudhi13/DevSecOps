@@ -1,0 +1,1 @@
+const GITHUB_PAT = "ghp_0123456789abcdefABCDEF0123456789abcdefAB";

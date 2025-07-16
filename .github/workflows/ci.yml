@@ -1,4 +1,4 @@
-name: TruffleHog and SonarQube CI
+name: Gitleaks and SonarQube CI
 
 on:
   push:
@@ -6,42 +6,43 @@ on:
   pull_request:
 
 jobs:
-  debug-trufflehog:
-    name: TruffleHog Secret Scan
+  gitleaks-secret-scan:
+    name: Gitleaks Secret Scan
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
 
-      - name: Install TruffleHog v3.90.0
+      - name: Install Gitleaks
         run: |
-          wget https://github.com/trufflesecurity/trufflehog/releases/download/v3.90.0/trufflehog_3.90.0_linux_amd64.tar.gz
-          tar -xzf trufflehog_3.90.0_linux_amd64.tar.gz
-          chmod +x trufflehog
-          sudo mv trufflehog /usr/local/bin/trufflehog
+          wget https://github.com/gitleaks/gitleaks/releases/download/v8.27.2/gitleaks_8.27.2_linux_x64.tar.gz
+          tar -xzvf gitleaks_8.27.2_linux_x64.tar.gz
+          chmod +x gitleaks
+          sudo mv gitleaks /usr/local/bin/gitleaks
 
-      - name: Run TruffleHog (filesystem scan)
+      - name: Run Gitleaks Scan with Custom Config
         run: |
-          trufflehog filesystem --json . > trufflehog-results.json || true
+          gitleaks detect --no-git --source . \
+            --report-format json \
+            --config gitleaks.toml \
+            --report-path gitleaks-report.json || true
 
-      - name: Print Only File/Line with Secrets
-        run: |
-          cat trufflehog-results.json | while read -r line; do
-            file=$(echo "$line" | jq -r '.SourceMetadata.Data.Filesystem.file // empty')
-            line_num=$(echo "$line" | jq -r '.SourceMetadata.Data.Filesystem.line // empty')
-            if [ -n "$file" ] && [ -n "$line_num" ]; then
-              echo "File: $file"
-              echo "Line: $line_num"
-              echo "---"
-            fi
-          done
+          echo "====== GITLEAKS FINDINGS ======"
+          jq -r '.[] | "File: \(.File)\nLine: \(.StartLine)\n---"' gitleaks-report.json || echo "No leaks found or report missing."
 
-          
+          leaks_count=$(jq '. | length' gitleaks-report.json)
+          if [ "$leaks_count" -gt 0 ]; then
+            echo "❌ Gitleaks found secrets in the codebase!"
+            exit 1
+          else
+            echo "✅ No secrets found by Gitleaks."
+          fi
+
   sonarqube:
     name: SonarQube Scan
     runs-on: ubuntu-latest
-    needs: debug-trufflehog
+    needs: gitleaks-secret-scan
 
     steps:
       - name: Checkout source

@@ -1,0 +1,10 @@
+[extend]
+useDefault = true
+
+
+[[rules]]
+id = "db-password"
+description = "Potential hardcoded DB password"
+regex = '''(?i)(password|dbpass)\s*[:=]\s*["']?([^\s"']{11,})["']?'''
+secretGroup = 2
+tags = ["db", "password", "hardcoded"]

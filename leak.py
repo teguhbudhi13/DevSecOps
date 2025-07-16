@@ -1,0 +1,9 @@
+DB_PASSWORD = "Zsk47Efyvl52"
+database_password = '1qaz2wsx3edc4rfv'
+dbpass = Abcdefghijk
+MYSQL_PASSWORD = "short"
+another_var = "thisisnotapassword"
+# special chars:
+db_password = "P@$$w0rd@2024"
+dbpass = "myS3c#ret*db"
+dbpass = '!!!A!@#1234567'
