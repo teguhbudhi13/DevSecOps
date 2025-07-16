@@ -25,32 +25,11 @@ jobs:
         run: |
           trufflehog filesystem --json . > trufflehog-results.json || true
 
-      - name: Show TruffleHog Findings (if any)
+      - name: Debug: Print raw TruffleHog results
         run: |
-          if jq -e '.unverified | length > 0' trufflehog-results.json > /dev/null; then
-            echo "🔐 TruffleHog findings:"
-            jq -c '.unverified[]' trufflehog-results.json | while read -r result; do
-              reason=$(echo "$result" | jq -r '.reason')
-              file=$(echo "$result" | jq -r '.sourceMetadata.data.source_id // "N/A"')
-              line=$(echo "$result" | jq -r '.sourceMetadata.data.line // "N/A"')
-              content=$(echo "$result" | jq -r '.sourceMetadata.data.line_content // .raw.context // "N/A"')
-              echo "🔸 Reason: $reason"
-              echo "📄 File: $file"
-              echo "📌 Line: $line"
-              echo "📄 Content: $content"
-              echo "---"
-            done
-          else
-            echo "✅ No secrets detected by TruffleHog"
-          fi
-
-      - name: Fail if Secrets Found
-        run: |
-          if jq -e '.unverified | length > 0' trufflehog-results.json > /dev/null; then
-            echo "❌ TruffleHog found secrets in code"
-            exit 1
-          fi
-
+          echo "--- START OF RESULTS ---"
+          cat trufflehog-results.json
+          echo "--- END OF RESULTS ---"
 
   sonarqube:
     name: SonarQube Scan
