@@ -23,34 +23,25 @@ jobs:
           gitleaks detect \
             --no-git \
             --source . \
-            --report-format sarif \
-            --report-path gitleaks-report.sarif \
+            --report-format json \
+            --report-path gitleaks-report.json \
             --exit-code 0
 
       - name: Show Gitleaks Findings (if any)
         run: |
-          if grep -q '"ruleId"' gitleaks-report.sarif; then
+          if grep -q '"RuleID"' gitleaks-report.json; then
             echo "🔐 Gitleaks findings:"
-            while IFS= read -r result; do
-              rule=$(echo "$result" | jq -r '.ruleId')
-              message=$(echo "$result" | jq -r '.message.text')
-              file=$(echo "$result" | jq -r '.locations[0].physicalLocation.artifactLocation.uri')
-              line=$(echo "$result" | jq -r '.locations[0].physicalLocation.region.startLine')
-
+            jq -c '.[]' gitleaks-report.json | while read -r result; do
+              rule=$(echo "$result" | jq -r '.RuleID')
+              file=$(echo "$result" | jq -r '.File')
+              line=$(echo "$result" | jq -r '.StartLine')
+              secret=$(echo "$result" | jq -r '.Match')
               echo "🔸 Rule: $rule"
-              echo "🔹 Message: $message"
               echo "📄 File: $file"
               echo "📌 Line: $line"
-
-              if [ -f "$file" ]; then
-                actual_line=$(sed -n "${line}p" "$file")
-                echo "📄 Content: $actual_line"
-              else
-                echo "⚠️ File not found: $file"
-              fi
-
+              echo "📄 Content: $secret"
               echo "---"
-            done < <(jq -c '.runs[].results[]' gitleaks-report.sarif)
+            done
           else
             echo "✅ No secrets detected by Gitleaks"
           fi
