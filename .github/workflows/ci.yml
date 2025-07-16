@@ -6,18 +6,6 @@ on:
   pull_request:
 
 jobs:
-  secretscan:
-    name: TruffleHog Secret Scan
-    runs-on: ubuntu-latest
-
-name: TruffleHog Debug CI
-
-on:
-  push:
-    branches: [main]
-  pull_request:
-
-jobs:
   debug-trufflehog:
     name: TruffleHog Secret Scan
     runs-on: ubuntu-latest
@@ -43,11 +31,10 @@ jobs:
           cat trufflehog-results.json
           echo "--- END trufflehog-results.json ---"
 
-
   sonarqube:
     name: SonarQube Scan
     runs-on: ubuntu-latest
-    needs: secretscan
+    needs: debug-trufflehog
 
     steps:
       - name: Checkout source
