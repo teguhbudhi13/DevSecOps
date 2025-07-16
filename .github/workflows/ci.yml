@@ -31,23 +31,26 @@ jobs:
         run: |
           if grep -q '"ruleId"' gitleaks-report.sarif; then
             echo "🔐 Gitleaks findings:"
-            jq -c '.runs[].results[]' gitleaks-report.sarif | while read -r result; do
+            while IFS= read -r result; do
               rule=$(echo "$result" | jq -r '.ruleId')
               message=$(echo "$result" | jq -r '.message.text')
               file=$(echo "$result" | jq -r '.locations[0].physicalLocation.artifactLocation.uri')
-              line=$(echo "$result" | jq -r '.locations[0].physicalLocation.region.startLine // "N/A"')
+              line=$(echo "$result" | jq -r '.locations[0].physicalLocation.region.startLine')
+
               echo "🔸 Rule: $rule"
               echo "🔹 Message: $message"
               echo "📄 File: $file"
               echo "📌 Line: $line"
+
               if [ -f "$file" ]; then
-                content=$(sed -n "${line}p" "$file")
-                echo "📄 Content: $content"
+                actual_line=$(sed -n "${line}p" "$file")
+                echo "📄 Content: $actual_line"
               else
                 echo "⚠️ File not found: $file"
               fi
+
               echo "---"
-            done
+            done < <(jq -c '.runs[].results[]' gitleaks-report.sarif)
           else
             echo "✅ No secrets detected by Gitleaks"
           fi
