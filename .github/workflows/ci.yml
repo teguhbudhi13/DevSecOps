@@ -31,30 +31,27 @@ jobs:
         run: |
           if grep -q '"ruleId"' gitleaks-report.sarif; then
             echo "🔐 Gitleaks findings:"
-            jq -r '
-              .runs[].results[] |
-              {
-                rule: .ruleId,
-                message: .message.text,
-                file: .locations[0].physicalLocation.artifactLocation.uri,
-                line: .locations[0].physicalLocation.region.startLine
-              } | @tsv
-            ' gitleaks-report.sarif | while IFS=$'\t' read -r rule message file line; do
+            jq -c '.runs[].results[]' gitleaks-report.sarif | while read -r result; do
+              rule=$(echo "$result" | jq -r '.ruleId')
+              message=$(echo "$result" | jq -r '.message.text')
+              file=$(echo "$result" | jq -r '.locations[0].physicalLocation.artifactLocation.uri')
+              line=$(echo "$result" | jq -r '.locations[0].physicalLocation.region.startLine // "N/A"')
               echo "🔸 Rule: $rule"
               echo "🔹 Message: $message"
               echo "📄 File: $file"
               echo "📌 Line: $line"
               if [ -f "$file" ]; then
-                content=$(sed -n "${line}p" "$file" | sed 's/^/📄 Content: /')
-                echo "$content"
+                content=$(sed -n "${line}p" "$file")
+                echo "📄 Content: $content"
               else
-                echo "⚠️ File not found in workspace: $file"
+                echo "⚠️ File not found: $file"
               fi
               echo "---"
             done
           else
             echo "✅ No secrets detected by Gitleaks"
           fi
+
 
       - name: Fail if Secrets Found
         run: |
