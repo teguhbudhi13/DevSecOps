@@ -33,8 +33,26 @@ jobs:
             echo "🔐 Gitleaks findings:"
             cat gitleaks-report.sarif | jq -r '
               .runs[].results[] |
-              "🔸 Rule: \(.ruleId)\n🔹 Message: \(.message.text)\n📄 File: \(.locations[0].physicalLocation.artifactLocation.uri // "N/A")\n📌 Line: \(.locations[0].physicalLocation.region.startLine // "N/A")\n---"
-            '
+              {
+                ruleId: .ruleId,
+                message: .message.text,
+                file: .locations[0].physicalLocation.artifactLocation.uri,
+                line: .locations[0].physicalLocation.region.startLine
+              }' | while read -r line; do
+                if [[ $line == \"ruleId* ]]; then rule=${line#*: }; fi
+                if [[ $line == \"message* ]]; then msg=${line#*: }; fi
+                if [[ $line == \"file* ]]; then file=${line#*: }; file=${file//\"/}; fi
+                if [[ $line == \"line* ]]; then
+                  lineno=${line#*: }
+                  content=$(sed -n "${lineno}p" "$file" 2>/dev/null | sed 's/^/    /')
+                  echo "🔸 Rule: $rule"
+                  echo "🔹 Message: $msg"
+                  echo "📄 File: $file"
+                  echo "📌 Line: $lineno"
+                  echo "💥 Content: $content"
+                  echo "---"
+                fi
+              done
           else
             echo "✅ No secrets detected by Gitleaks"
           fi
