@@ -29,14 +29,15 @@ jobs:
 
       - name: Show Gitleaks Findings (if any)
         run: |
+          echo "📄 Raw SARIF output:"
+          cat gitleaks-report.sarif || echo "⚠️ Report not found"
+
           if grep -q '"ruleId"' gitleaks-report.sarif; then
             echo "🔐 Gitleaks findings:"
-            cat gitleaks-report.sarif | jq '.runs[].results[] | {
-              ruleId,
-              message: .message.text,
-              file: .locations[0].physicalLocation.artifactLocation.uri,
-              line: .locations[0].physicalLocation.region.startLine
-            }'
+            cat gitleaks-report.sarif | jq -r '
+              .runs[].results[] |
+              "🔸 Rule: \(.ruleId)\n🔹 Message: \(.message.text)\n📄 File: \(.locations[0].physicalLocation.artifactLocation.uri // "N/A")\n📌 Line: \(.locations[0].physicalLocation.region.startLine // "N/A")\n---"
+            '
           else
             echo "✅ No secrets detected by Gitleaks"
           fi
