@@ -13,13 +13,17 @@ jobs:
       - name: Checkout source
         uses: actions/checkout@v4
 
+      - name: Download Gitleaks CLI
+        run: |
+          curl -sSL https://github.com/gitleaks/gitleaks/releases/download/v8.24.3/gitleaks_8.24.3_linux_x64.tar.gz | tar -xz
+          sudo mv gitleaks /usr/local/bin/
+
       - name: Run Gitleaks
-        uses: gitleaks/gitleaks-action@v2
-        with:
-          scan-dir: .
-          scan-type: repo
-          report-format: sarif
-          report-path: gitleaks-report.sarif
+        run: |
+          gitleaks detect --source . \
+            --report-format sarif \
+            --report-path gitleaks-report.sarif \
+            --exit-code 1
 
       - name: Show Report
         run: cat gitleaks-report.sarif || echo "No report"
@@ -27,7 +31,7 @@ jobs:
       - name: Fail if Secrets Found
         run: |
           if grep -q '"ruleId"' gitleaks-report.sarif; then
-            echo "❌ Secret leaks found by Gitleaks!"
+            echo "❌ Gitleaks found hardcoded secrets"
             exit 1
           else
             echo "✅ No secrets detected by Gitleaks"
